@@ -1,4 +1,5 @@
 flask
 pandas
 xlrd
+openpyxl
 gunicorn
