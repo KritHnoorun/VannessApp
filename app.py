@@ -1,4 +1,4 @@
-from flask import Flask, request, send_file
+from flask import Flask, request, render_template_string
 import pandas as pd
 import re
 
@@ -14,7 +14,7 @@ def process_files(daily_reports, new_employee_file):
 
     for file in daily_reports:
         team_member = extract_name_from_filename(file.filename)
-        df = pd.read_excel(file, engine="xlrd")
+        df = pd.read_excel(file, engine="openpyxl")
         for _, row in df.iterrows():
             interview_data.append({
                 "Candidate Name": row["Candidate Name"].strip(),
@@ -22,7 +22,7 @@ def process_files(daily_reports, new_employee_file):
                 "Team Member": team_member
             })
 
-    df_new = pd.read_excel(new_employee_file, engine="xlrd")
+    df_new = pd.read_excel(new_employee_file, engine="openpyxl")
     new_employees.extend(df_new.to_dict(orient="records"))
 
     dashboard = []
@@ -37,10 +37,8 @@ def process_files(daily_reports, new_employee_file):
                 })
 
     dashboard_df = pd.DataFrame(dashboard)
-    output_file = "employee_dashboard.xlsx"
-    dashboard_df.to_excel(output_file, index=False)
     
-    return output_file
+    return dashboard_df.to_html(classes="table table-striped", index=False)
 
 @app.route("/", methods=["GET", "POST"])
 def upload_files():
@@ -48,10 +46,14 @@ def upload_files():
         daily_reports = request.files.getlist("daily_reports")
         new_employee_file = request.files["new_employee"]
         
-        output_file = process_files(daily_reports, new_employee_file)
+        dashboard_html = process_files(daily_reports, new_employee_file)
         
-        return send_file(output_file, as_attachment=True)
-    
+        return render_template_string('''
+            <h2>Employee Dashboard</h2>
+            {{ table | safe }}
+            <br><a href="/">Upload More Files</a>
+        ''', table=dashboard_html)
+
     return '''
     <form method="post" enctype="multipart/form-data">
         Daily Report Files: <input type="file" name="daily_reports" multiple><br>
@@ -61,4 +63,4 @@ def upload_files():
     '''
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)
