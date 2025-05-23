@@ -1,6 +1,7 @@
-from flask import Flask, request, render_template_string
+from flask import Flask, request, render_template_string, send_file
 import pandas as pd
 import re
+import os
 
 app = Flask(__name__)
 
@@ -14,7 +15,7 @@ def process_files(daily_reports, new_employee_file):
 
     for file in daily_reports:
         team_member = extract_name_from_filename(file.filename)
-        df = pd.read_excel(file, engine="openpyxl")
+        df = pd.read_excel(file, engine="xlrd")  # Ensure correct engine for `.xls`
         for _, row in df.iterrows():
             interview_data.append({
                 "Candidate Name": row["Candidate Name"].strip(),
@@ -22,7 +23,7 @@ def process_files(daily_reports, new_employee_file):
                 "Team Member": team_member
             })
 
-    df_new = pd.read_excel(new_employee_file, engine="openpyxl")
+    df_new = pd.read_excel(new_employee_file, engine="xlrd")
     new_employees.extend(df_new.to_dict(orient="records"))
 
     dashboard = []
@@ -38,7 +39,10 @@ def process_files(daily_reports, new_employee_file):
 
     dashboard_df = pd.DataFrame(dashboard)
     
-    return dashboard_df.to_html(classes="table table-striped", index=False)
+    output_file = "employee_dashboard.xlsx"
+    dashboard_df.to_excel(output_file, index=False)  # Save Excel file
+
+    return dashboard_df.to_html(classes="table table-striped", index=False), output_file
 
 @app.route("/", methods=["GET", "POST"])
 def upload_files():
@@ -46,12 +50,15 @@ def upload_files():
         daily_reports = request.files.getlist("daily_reports")
         new_employee_file = request.files["new_employee"]
         
-        dashboard_html = process_files(daily_reports, new_employee_file)
+        dashboard_html, output_file = process_files(daily_reports, new_employee_file)
         
         return render_template_string('''
             <h2>Employee Dashboard</h2>
             {{ table | safe }}
-            <br><a href="/">Upload More Files</a>
+            <br>
+            <a href="/download">Download Dashboard Excel</a>
+            <br><br>
+            <a href="/">Upload More Files</a>
         ''', table=dashboard_html)
 
     return '''
@@ -61,6 +68,10 @@ def upload_files():
         <input type="submit" value="Upload & Process">
     </form>
     '''
+
+@app.route("/download")
+def download_file():
+    return send_file("employee_dashboard.xlsx", as_attachment=True)
 
 if __name__ == "__main__":
     app.run(debug=True)
