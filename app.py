@@ -64,8 +64,8 @@ def upload_files():
 
     return '''
     <form method="post" enctype="multipart/form-data">
-        Daily Report Files: <input type="file" name="daily_reports" multiple><br>
-        New Employee File: <input type="file" name="new_employee"><br>
+        Daily Report File(s): <input type="file" name="daily_reports" multiple><br>
+        New Employee File(s): <input type="file" name="new_employee"><br>
         <input type="submit" value="Upload & Process">
     </form>
     '''
