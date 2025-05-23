@@ -15,7 +15,7 @@ def process_files(daily_reports, new_employee_file):
 
     for file in daily_reports:
         team_member = extract_name_from_filename(file.filename)
-        df = pd.read_excel(file, engine="xlrd")  # Ensure correct engine for `.xls`
+        df = pd.read_excel(file, engine="openpyxl")  # Change to openpyxl for `.xlsx`
         for _, row in df.iterrows():
             interview_data.append({
                 "Candidate Name": row["Candidate Name"].strip(),
@@ -23,7 +23,7 @@ def process_files(daily_reports, new_employee_file):
                 "Team Member": team_member
             })
 
-    df_new = pd.read_excel(new_employee_file, engine="xlrd")
+    df_new = pd.read_excel(new_employee_file, engine="openpyxl")  # Use openpyxl here too
     new_employees.extend(df_new.to_dict(orient="records"))
 
     dashboard = []
@@ -40,9 +40,10 @@ def process_files(daily_reports, new_employee_file):
     dashboard_df = pd.DataFrame(dashboard)
     
     output_file = "employee_dashboard.xlsx"
-    dashboard_df.to_excel(output_file, index=False)  # Save Excel file
+    dashboard_df.to_excel(output_file, index=False, engine="openpyxl")  # Ensure openpyxl is used
 
     return dashboard_df.to_html(classes="table table-striped", index=False), output_file
+
 
 @app.route("/", methods=["GET", "POST"])
 def upload_files():
